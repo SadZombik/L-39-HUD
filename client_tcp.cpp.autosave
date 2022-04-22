@@ -1,0 +1,6 @@
+#include "client_tcp.h"
+
+TCP_client::TCP_client()
+{
+
+}
