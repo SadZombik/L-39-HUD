@@ -1,2 +1,0 @@
-Head_up_display.pro.user
-Head_up_display.pro
