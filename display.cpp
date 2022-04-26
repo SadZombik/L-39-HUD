@@ -6,7 +6,8 @@ Display::Display(const quint16 width, const quint16 height, QWidget *parent)
 {
     resize(w, h);
     rescale();
-    mode = Modes::NAV;
+
+    planeParams.hud_mode = Modes::NAV;
 
     QTimer *timer = new QTimer(this);
     timer->start(20);
@@ -25,6 +26,8 @@ void Display::update_params()
     planeParams.yaw = test.getYaw();
     planeParams.vertical_speed = test.getVertSpeed();
     planeParams.forward_speed = test.getForwSpeed();
+    planeParams.bar_height = test.getHeight();
+    planeParams.radio_height = test.getRHeight();
 }
 
 void Display::rescale()
@@ -44,6 +47,7 @@ void Display::rescale()
         left_level = w * ini->value("w_level_coef").toFloat();
         right_level = w - w * ini->value("w_level_coef").toFloat();
         label_offset = ini->value("label_offset").toFloat();
+        use_mesh = ini->value("mesh").toBool();
 
         // Настройки прицела
         scope_size = h * ini->value("scope_size_coef").toFloat();
@@ -78,8 +82,10 @@ void Display::rescale()
         pitch_font_size = ini->value("pitch_font_size").toInt();
         vert_speed_font_size = ini->value("vert_speed_font_size").toInt();
         ias_font_size = ini->value("ias_font_size").toInt();
-        height_font_size = ini->value("")
-                radio_height_font_size
+        height_font_size = ini->value("height_font_size").toInt();
+        radio_height_font_size = ini->value("radio_height_font_size").toInt();
+        mode_font_size = ini->value("mode_font_size").toInt();
+        range_font_size = ini->value("range_font_size").toInt();
     }
     ini->endGroup();
 
@@ -89,8 +95,6 @@ void Display::rescale()
         client.set_port(ini->value("PORT").toInt());
     }
     ini->endGroup();
-
-    delete ini;
 }
 
 void Display::paintEvent(QPaintEvent *event)
@@ -101,7 +105,16 @@ void Display::paintEvent(QPaintEvent *event)
     Q_UNUSED(event);
     QPainter qp(this);
 
-    switch(mode)
+    // TODO:
+    QPen pen;
+    pen.setWidth(line_width);
+    pen.setColor(line_color);
+    // вынести в конструктор после настройки
+
+    qp.setPen(pen);
+    qp.translate(w/2, h/2);  // Перенос 0,0 в центр экрана
+
+    switch(planeParams.hud_mode)
     {
     case NAV:
         draw_nav(&qp);
@@ -133,34 +146,28 @@ void Display::paintEvent(QPaintEvent *event)
 
 void Display::mesh(QPainter *qp)
 {
-    QPen ipen;
-    ipen.setStyle(Qt::DashLine);
-
-    qp->save();
+    if (use_mesh)
     {
-        qp->setPen(ipen);
-        qp->translate(-w/2, -h/2);
+        QPen ipen;
+        ipen.setStyle(Qt::DashLine);
 
-        qp->drawLine(0, top_level, w, top_level);
-        qp->drawLine(0, bottom_level, w, bottom_level);
+        qp->save();
+        {
+            qp->setPen(ipen);
+            qp->translate(-w/2, -h/2);
 
-        qp->drawLine(left_level, 0, left_level, h);
-        qp->drawLine(right_level, 0, right_level, h);
+            qp->drawLine(0, top_level, w, top_level);
+            qp->drawLine(0, bottom_level, w, bottom_level);
+
+            qp->drawLine(left_level, 0, left_level, h);
+            qp->drawLine(right_level, 0, right_level, h);
+        }
+        qp->restore();
     }
-    qp->restore();
 }
 
 void Display::draw_nav(QPainter *qp)
 {
-    // TODO:
-    QPen pen;
-    pen.setWidth(line_width);
-    pen.setColor(line_color);
-    // вынести в конструктор после настройки
-
-    qp->setPen(pen);
-    qp->translate(w/2, h/2);  // Перенос 0,0 в центр экрана
-
     // Сетка для позиционирования индикаторов
     mesh(qp);
 
@@ -168,19 +175,28 @@ void Display::draw_nav(QPainter *qp)
     scope(qp);
 
     // Шкала крена
-    roll_indicator(qp, planeParams.roll);
+    roll_indicator(qp);
 
     // Линия горизнта
-    pitch_indicator(qp, planeParams.pitch);
+    pitch_indicator(qp);
 
     // Шкала курса
-    course(qp, planeParams.yaw);
+    course(qp);
 
     // Шкала верткальной скорости
-    vert_speed_indicator(qp, planeParams.vertical_speed);
+    vert_speed_indicator(qp);
 
     // Приборная воздушная скорость
-    ias(qp, planeParams.forward_speed);
+    ias(qp);
+
+    // Высота
+    height_indicator(qp);
+
+    // Индикатор режима работы
+    mode_indicator(qp, "NAV");
+
+    // Индикатор расстояния до выбранной точки маршрута
+    range_indicator(qp);
 }
 
 void Display::draw_app(QPainter *qp)
@@ -221,7 +237,7 @@ void Display::scope(QPainter *s_qp)
     s_qp->drawLines(scope_lines, 4);
 }
 
-void Display::roll_indicator(QPainter *r_qp, float roll)
+void Display::roll_indicator(QPainter *r_qp)
 {
     r_qp->save();
     {
@@ -285,7 +301,7 @@ void Display::roll_indicator(QPainter *r_qp, float roll)
         }
 
         // Линиия крена
-        r_qp->rotate(roll);
+        r_qp->rotate(planeParams.roll);
 
         float s_len = scope_size + 2*scope_space;   // Отступ от прицела
 
@@ -303,10 +319,11 @@ void Display::roll_indicator(QPainter *r_qp, float roll)
     r_qp->restore();
 }
 
-void Display::pitch_indicator(QPainter *p_qp, float pitch)
+void Display::pitch_indicator(QPainter *p_qp)
 {
     QFont p_font("Helvetica", pitch_font_size);
 
+    float pitch = planeParams.pitch;
     float line_pos = pitch * roll_outer_radius / 90;
     line_pos = pitch > 90 ? roll_outer_radius : line_pos;
     line_pos = pitch < -90 ? -roll_outer_radius : line_pos;
@@ -320,10 +337,11 @@ void Display::pitch_indicator(QPainter *p_qp, float pitch)
     p_qp->restore();
 }
 
-void Display::vert_speed_indicator(QPainter *vs_qp, float v_speed)
+void Display::vert_speed_indicator(QPainter *vs_qp)
 {
     QFont vs_font("Helvetica", vert_speed_font_size);
 
+    float v_speed = planeParams.vertical_speed;
     float arrow_pos = -v_speed * vert_speed_line_len/2 / 30;
     arrow_pos = v_speed > 30 ? -vert_speed_line_len/2 : arrow_pos;
     arrow_pos = v_speed < -30 ? vert_speed_line_len/2 : arrow_pos;
@@ -348,9 +366,11 @@ void Display::vert_speed_indicator(QPainter *vs_qp, float v_speed)
     vs_qp->restore();
 }
 
-void Display::ias(QPainter *i_qp, float speed)
+void Display::ias(QPainter *i_qp)
 {
     QFont ias_font("Helvetica", ias_font_size);
+
+    float speed = planeParams.forward_speed;
     i_qp->save();
     {
         i_qp->translate(-w/2, -h/2);
@@ -393,11 +413,9 @@ void Display::ias(QPainter *i_qp, float speed)
     prev_speed = speed;
 }
 
-void Display::course(QPainter *c_qp, float yaw)
+void Display::course(QPainter *c_qp)
 {
     QFont yaw_font("Helvetica", yaw_font_size);
-
-
 
     c_qp->save();
     {
@@ -409,7 +427,7 @@ void Display::course(QPainter *c_qp, float yaw)
 
         for (int i = 0; i < 360; i++)
         {
-            float x = yaw_scale*(i - yaw) ;
+            float x = yaw_scale*(i - planeParams.yaw) ;
             if (x < yaw_line_len/2 && x > -yaw_line_len/2)
             {
                 QRectF yaw_rect(
@@ -423,9 +441,8 @@ void Display::course(QPainter *c_qp, float yaw)
                 c_qp->drawLine(x, top_level, x, top_level-vert_lines_height);
                 c_qp->drawLine(x+yaw_scale/2, top_level, x+yaw_scale/2, top_level-vert_lines_height/2);
             }
-
-
         }
+
         // Треугольник
         float a = ias_font_size/2;
         float h = qSqrt(3) * a /2;
@@ -439,9 +456,80 @@ void Display::course(QPainter *c_qp, float yaw)
     c_qp->restore();
 }
 
-void Display::flight_height(QPainter *h_qp, float height, float r_height)
+void Display::height_indicator(QPainter *h_qp)
 {
+    QFont h_font("Helvetica", height_font_size);
+    QFont r_font("Helvetica", radio_height_font_size);
 
+    h_qp->save();
+    {
+        h_qp->setFont(h_font);
+
+        h_qp->translate(-w/2, -h/2);
+
+        h_qp->drawText(QRectF(
+            right_level - height_font_size*2,
+            top_level - height_font_size - label_offset,
+            height_font_size*4,
+            height_font_size
+        ), Qt::AlignCenter, QString::number(planeParams.bar_height));
+
+        h_qp->setFont(r_font);
+        h_qp->drawText(QRectF(
+            right_level - height_font_size*2+radio_height_font_size,
+            top_level+label_offset,
+            radio_height_font_size,
+            radio_height_font_size+label_offset
+        ), Qt::AlignCenter, "R");
+
+        QRectF r_rect(
+            right_level - radio_height_font_size,
+            top_level + label_offset,
+            height_font_size*3-radio_height_font_size,
+            radio_height_font_size+label_offset
+        );
+        h_qp->drawRect(r_rect);
+        h_qp->drawText(r_rect, Qt::AlignCenter, QString::number(planeParams.radio_height));
+    }
+    h_qp->restore();
+}
+
+void Display::mode_indicator(QPainter *m_qp, QString mode)
+{
+    QFont m_font("Helvetica", mode_font_size);
+
+    m_qp->save();
+    {
+        m_qp->setFont(m_font);
+
+        m_qp->translate(-w/2, -h/2);
+        m_qp->drawText(QRectF(
+            left_level-mode_font_size*1.5,
+            bottom_level-label_offset-mode_font_size,
+            mode_font_size*3,
+            mode_font_size
+        ), Qt::AlignCenter, mode);
+    }
+    m_qp->restore();
+}
+
+void Display::range_indicator(QPainter *rn_qp)
+{
+    QFont rn_font("Helvetica", range_font_size);
+
+    rn_qp->save();
+    {
+        rn_qp->setFont(rn_font);
+
+        rn_qp->translate(0, -h/2);
+        rn_qp->drawText(QRectF(
+            -range_font_size*2,
+            bottom_level+label_offset,
+            range_font_size*4,
+            range_font_size
+        ), Qt::AlignCenter, QString::number(planeParams.range));
+    }
+    rn_qp->restore();
 }
 
 void Display::keyPressEvent(QKeyEvent *event)

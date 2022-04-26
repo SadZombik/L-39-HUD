@@ -29,9 +29,13 @@ private:
     quint16 line_width;
     QColor line_color;
     quint16 label_offset;
+    bool use_mesh;
 
-    // Текущий режим ИЛС
-    Modes mode;
+    // Выоста и ширина сетки индикаторов
+    float top_level;
+    float bottom_level;
+    float left_level;
+    float right_level;
 
     // Прицел
     float scope_size;           // Размер сетки прицела
@@ -55,11 +59,6 @@ private:
     float vert_lines_width;     // Ширина вертикальных линий
     int vert_speed_font_size;   // Размер шрифта вертикальной скорости
 
-    // Выоста и ширина сетки индикаторов
-    float top_level;
-    float bottom_level;
-    float left_level;
-    float right_level;
 
     // Приборная воздушная скорость
     float ias_line_len;         // Ширина линии индикатора
@@ -77,9 +76,14 @@ private:
     int yaw_font_size;          // Размер шрифта курса
 
     // Высота
+    int height_font_size;       // Размер шрифта высоты
+    int radio_height_font_size; // Размер шрифта радио высоты
 
-    int height_font_size;
-    int radio_height_font_size;
+    // Основной режим работы
+    int mode_font_size;         // Размер шрифта индикатора режима работы
+
+    // Расстояние до выбранной точки
+    int range_font_size;        // Размер шрифта индикатора расстояния
 
     Display_TCP_Client client;
     DisplayDataPacket &planeParams;
@@ -99,12 +103,14 @@ private:
     // Отдельные элементы
     void mesh(QPainter *qp);
     void scope(QPainter *s_qp);
-    void roll_indicator(QPainter *r_qp, float roll);
-    void pitch_indicator(QPainter *p_qp, float pitch);
-    void vert_speed_indicator(QPainter *vs_qp, float v_speed);
-    void ias(QPainter *i_qp, float speed);
-    void course(QPainter *c_qp, float yaw);
-    void flight_height(QPainter *h_qp, float height, float r_height);
+    void roll_indicator(QPainter *r_qp);
+    void pitch_indicator(QPainter *p_qp);
+    void vert_speed_indicator(QPainter *vs_qp);
+    void ias(QPainter *i_qp);
+    void course(QPainter *c_qp);
+    void height_indicator(QPainter *h_qp);
+    void mode_indicator(QPainter *m_qp, QString mode);
+    void range_indicator(QPainter *rn_qp);
 
 protected:
     void paintEvent(QPaintEvent *event) override;

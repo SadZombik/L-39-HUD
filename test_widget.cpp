@@ -2,12 +2,13 @@
 
 test_widget::test_widget(QWidget *parent): QWidget(parent)
 {
-    QVBoxLayout *layout = new QVBoxLayout(this);;
+    layout = new QVBoxLayout(this);
+
     roll_label = new QLabel("Roll", this);
     roll_slider = new QSlider(Qt::Horizontal, this);
 
     pitch_label = new QLabel("Pitch", this);
-    pitch_slider = new QSlider(this);
+    pitch_slider = new QSlider(Qt::Vertical, this);
 
     v_speed_label = new QLabel("Vert Speed", this);
     v_speed_slider = new QSlider(Qt::Horizontal, this);
@@ -18,18 +19,29 @@ test_widget::test_widget(QWidget *parent): QWidget(parent)
     yaw_label = new QLabel("Yaw", this);
     yaw_slider = new QDoubleSpinBox();
 
+    height_label = new QLabel("Height", this);
+    height_slider = new QSlider(Qt::Horizontal, this);
+
+    r_height_label = new QLabel("Radio Height", this);
+    r_height_slider = new QSlider(Qt::Horizontal, this);
+
+    yaw_slider->setMinimum(0);
+    yaw_slider->setMaximum(360);
+    yaw_slider->setSingleStep(0.3);
     roll_slider->setMinimum(-200);
     roll_slider->setMaximum(200);
     pitch_slider->setMinimum(-180);
     pitch_slider->setMaximum(180);
-    yaw_slider->setMinimum(0);
-    yaw_slider->setMaximum(360);
-    yaw_slider->setSingleStep(0.3);
 
     v_speed_slider->setMinimum(-50);
     v_speed_slider->setMaximum(50);
     f_speed_slider->setMinimum(0);
     f_speed_slider->setMaximum(1000);
+    height_slider->setMinimum(0);
+    height_slider->setMaximum(5000);
+    r_height_slider->setMinimum(0);
+    r_height_slider->setMaximum(5000);
+
 
     layout->addWidget(roll_label);
     layout->addWidget(roll_slider);
@@ -42,6 +54,10 @@ test_widget::test_widget(QWidget *parent): QWidget(parent)
     layout->addWidget(v_speed_slider);
     layout->addWidget(f_speed_label);
     layout->addWidget(f_speed_slider);
+    layout->addWidget(height_label);
+    layout->addWidget(height_slider);
+    layout->addWidget(r_height_label);
+    layout->addWidget(r_height_slider);
 
     setLayout(layout);
 
@@ -49,6 +65,8 @@ test_widget::test_widget(QWidget *parent): QWidget(parent)
     connect(pitch_slider, SIGNAL(valueChanged(int)), this, SLOT(upd_pitch(int)));
     connect(v_speed_slider, SIGNAL(valueChanged(int)), this, SLOT(upd_v_speed(int)));
     connect(f_speed_slider, SIGNAL(valueChanged(int)), this, SLOT(upd_f_speed(int)));
+    connect(height_slider, SIGNAL(valueChanged(int)), this, SLOT(upd_height(int)));
+    connect(r_height_slider, SIGNAL(valueChanged(int)), this, SLOT(upd_r_height(int)));
 }
 
 void test_widget::upd_roll(int value)
@@ -69,4 +87,14 @@ void test_widget::upd_v_speed(int value)
 void test_widget::upd_f_speed(int value)
 {
     f_speed_label->setText("IAS " + QString::number(value));
+}
+
+void test_widget::upd_height(int value)
+{
+    height_label->setText("Height " + QString::number(value));
+}
+
+void test_widget::upd_r_height(int value)
+{
+    r_height_label->setText("Radio Height " + QString::number(value));
 }

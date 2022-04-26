@@ -21,8 +21,12 @@ public:
     float getYaw() { return yaw_slider->value(); }
     float getVertSpeed() { return v_speed_slider->value(); }
     float getForwSpeed() { return f_speed_slider->value(); }
+    float getHeight() { return height_slider->value(); }
+    float getRHeight() { return r_height_slider->value(); }
 
 private:
+    QVBoxLayout *layout;
+
     QLabel *roll_label;
     QSlider *roll_slider;
 
@@ -38,11 +42,19 @@ private:
     QLabel *f_speed_label;
     QSlider *f_speed_slider;
 
+    QLabel *height_label;
+    QSlider *height_slider;
+
+    QLabel *r_height_label;
+    QSlider *r_height_slider;
+
 private slots:
     void upd_roll(int);
     void upd_pitch(int);
     void upd_v_speed(int);
     void upd_f_speed(int);
+    void upd_height(int);
+    void upd_r_height(int);
 };
 
 #endif // TEST_WIDGET_H
