@@ -8,15 +8,15 @@
 #include <QKeyEvent>
 #include <QSettings>
 #include <QtMath>
-#include "display_tcp_client.h"
+#include "hud_tcp_client.h"
 #include "test_widget.h"
 
-class Display: public QWidget
+class HUD: public QWidget
 {
     Q_OBJECT
 
 public:
-    Display(const quint16 width, const quint16 height, QWidget *parent = nullptr);
+    HUD(const quint16 width, const quint16 height, bool transparent = false, QWidget *parent = nullptr);
 
 private:
     void rescale();
@@ -26,9 +26,9 @@ private:
     quint16 h;
 
     // Линии и отступы
-    quint16 line_width;
     QColor line_color;
-    quint16 label_offset;
+    float line_width;
+    float label_offset;
     bool use_mesh;
 
     // Выоста и ширина сетки индикаторов
@@ -51,14 +51,16 @@ private:
     int pitch_font_size;        // Размер шрифта угла тангажа
 
     // Курс
-    float course_scale_size;    // Размер шкалы курса
+    float yaw_line_len;         // Ширина шкалы курса
+    float vert_lines_height;    // Высота линий шкалы
+    float yaw_scale;            // Масштаб шкалы
+    int yaw_font_size;          // Размер шрифта курса
 
     // Вертикальная скорость
     float vert_speed_line_len;  // Длина линии шкалы
     float scale_offset;         // Отступ от шкалы крена
     float vert_lines_width;     // Ширина вертикальных линий
     int vert_speed_font_size;   // Размер шрифта вертикальной скорости
-
 
     // Приборная воздушная скорость
     float ias_line_len;         // Ширина линии индикатора
@@ -69,29 +71,18 @@ private:
     QPointF t1[3];
     QPointF t2[3];
 
-    // Шкала курса
-    float yaw_line_len;         // Ширина шкалы курса
-    float vert_lines_height;    // Высота линий шкалы
-    float yaw_scale;            // Масштаб шкалы
-    int yaw_font_size;          // Размер шрифта курса
-
-    // Высота
     int height_font_size;       // Размер шрифта высоты
     int radio_height_font_size; // Размер шрифта радио высоты
-
-    // Основной режим работы
     int mode_font_size;         // Размер шрифта индикатора режима работы
-
-    // Расстояние до выбранной точки
     int range_font_size;        // Размер шрифта индикатора расстояния
+    int launch_font_size;       // Размер шрифта разрешения сброса/пуска
 
-    Display_TCP_Client client;
+    HUD_TCP_client client;
     DisplayDataPacket &planeParams;
 
     test_widget test;
 
-    // Рисование
-    // По режимам работы ИЛС
+    // Рисовваие по режимам работы ИЛС
     void draw_nav(QPainter *qp);
     void draw_app(QPainter *qp);
     void draw_bomb(QPainter *qp);
@@ -100,17 +91,60 @@ private:
     void draw_air(QPainter *qp);
     void draw_vizier(QPainter *qp);
 
+    // Элементы которые есть на всех экранах
+    void draw(QPainter *qp, QString mode, bool radio);
+
     // Отдельные элементы
-    void mesh(QPainter *qp);
-    void scope(QPainter *s_qp);
-    void roll_indicator(QPainter *r_qp);
-    void pitch_indicator(QPainter *p_qp);
-    void vert_speed_indicator(QPainter *vs_qp);
-    void ias(QPainter *i_qp);
-    void course(QPainter *c_qp);
-    void height_indicator(QPainter *h_qp);
-    void mode_indicator(QPainter *m_qp, QString mode);
-    void range_indicator(QPainter *rn_qp);
+    // Сетка для позиционирования индикаторов
+    void mesh(QPainter*);
+
+    // Неподвижынй прицел
+    void scope(QPainter*);
+
+    // Шкала крена
+    void roll_indicator(QPainter*);
+
+    // Линия горизнта
+    void pitch_indicator(QPainter*);
+
+    // Шкала курса
+    void vert_speed_indicator(QPainter*);
+
+    // Шкала верткальной скорости
+    void ias(QPainter*);
+
+    // Приборная воздушная скорость
+    void course(QPainter*);
+
+    // Высота
+    void height_indicator(QPainter*, bool);
+
+    // Индикатор режима работы
+    void mode_indicator(QPainter*, QString);
+
+    // Индикатор расстояния до выбранной точки маршрута
+    void waypoint_indicator(QPainter*);
+
+    // Метка отклонения от глиссады
+    void glide_mark(QPainter*);
+
+    // Символы курсового и луча глиссады
+    void glide_symbols(QPainter*);
+
+    // Визирная метка и траектория падения бомб
+    void bomb_mark(QPainter*);
+
+    // Сигнал разрешения сброса/пуска
+    void launch_signal(QPainter*);
+
+    // Шкала дальности
+    void range_scale(QPainter*);
+
+    // Выбор оружия
+    void weapon_switch(QPainter*, QString str);
+
+    // Визирная метка
+    void viz_mark(QPainter*);
 
 protected:
     void paintEvent(QPaintEvent *event) override;

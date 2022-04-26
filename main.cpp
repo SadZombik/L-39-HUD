@@ -1,4 +1,4 @@
-#include "display.h"
+#include "HUD.h"
 #include "test_widget.h"
 #include <QApplication>
 
@@ -7,7 +7,7 @@ int main(int argc, char *argv[])
     QApplication a(argc, argv);
 
     int size = 512;
-    Display hud(size, size * 1.2);
+    HUD hud(size, size * 1.2, true);
     hud.show();
 
     return a.exec();

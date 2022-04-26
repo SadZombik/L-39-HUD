@@ -137,5 +137,3 @@ void TCP_Client::slotTcpError(QAbstractSocket::SocketError socketError)
     // Try to reconnect after 3 seconds
     QTimer::singleShot(3000, this, SLOT(slotTcpReconnect()));
 }
-
-

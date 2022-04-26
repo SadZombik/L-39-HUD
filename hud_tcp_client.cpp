@@ -1,16 +1,16 @@
-#include "display_tcp_client.h"
+#include "hud_tcp_client.h"
 
-Display_TCP_Client::Display_TCP_Client()
+HUD_TCP_client::HUD_TCP_client()
 {    
     connect(TcpSocket, SIGNAL(readyRead()), this, SLOT(OnReadTcpData()));
 }
 
-void Display_TCP_Client::OnReadTcpData()
+void HUD_TCP_client::OnReadTcpData()
 {
     ReadCommonTcpData();
 }
 
-void Display_TCP_Client::ReadCommonTcpData()
+void HUD_TCP_client::ReadCommonTcpData()
 {
     bool processedHeader = false;
     DisplayTCPHeader displayHeader;
@@ -58,7 +58,7 @@ void Display_TCP_Client::ReadCommonTcpData()
 }
 
 
-void Display_TCP_Client::GetDisplayDataPacket(QDataStream &_stream)
+void HUD_TCP_client::GetDisplayDataPacket(QDataStream &_stream)
 {
     displayPacket.PacketReady = true;
     _stream >> displayPacket.bar_height;
@@ -73,7 +73,7 @@ void Display_TCP_Client::GetDisplayDataPacket(QDataStream &_stream)
     _stream >> displayPacket.long_acceleration;
     _stream >> displayPacket.hud_mode;
     _stream >> displayPacket.waypoint_dist;
-    _stream >> displayPacket.reset_signal;
+    _stream >> displayPacket.launch_signal;
     _stream >> displayPacket.range;
     _stream >> displayPacket.hit_point_x;
     _stream >> displayPacket.hit_point_y;

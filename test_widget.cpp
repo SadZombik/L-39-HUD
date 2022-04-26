@@ -4,6 +4,16 @@ test_widget::test_widget(QWidget *parent): QWidget(parent)
 {
     layout = new QVBoxLayout(this);
 
+    mode_label = new QLabel("Режим", this);
+    mode = new QComboBox(this);
+    mode->addItem("NAV");
+    mode->addItem("APP");
+    mode->addItem("BOMB");
+    mode->addItem("ROCKET");
+    mode->addItem("GUN");
+    mode->addItem("AIR");
+    mode->addItem("VIZ");
+
     roll_label = new QLabel("Roll", this);
     roll_slider = new QSlider(Qt::Horizontal, this);
 
@@ -42,6 +52,8 @@ test_widget::test_widget(QWidget *parent): QWidget(parent)
     r_height_slider->setMinimum(0);
     r_height_slider->setMaximum(5000);
 
+    layout->addWidget(mode_label);
+    layout->addWidget(mode);
 
     layout->addWidget(roll_label);
     layout->addWidget(roll_slider);
@@ -59,14 +71,22 @@ test_widget::test_widget(QWidget *parent): QWidget(parent)
     layout->addWidget(r_height_label);
     layout->addWidget(r_height_slider);
 
+
     setLayout(layout);
 
+    connect(mode, SIGNAL(activated(int)), this, SLOT(select_mode(int)));
     connect(roll_slider, SIGNAL(valueChanged(int)), this, SLOT(upd_roll(int)));
     connect(pitch_slider, SIGNAL(valueChanged(int)), this, SLOT(upd_pitch(int)));
     connect(v_speed_slider, SIGNAL(valueChanged(int)), this, SLOT(upd_v_speed(int)));
     connect(f_speed_slider, SIGNAL(valueChanged(int)), this, SLOT(upd_f_speed(int)));
     connect(height_slider, SIGNAL(valueChanged(int)), this, SLOT(upd_height(int)));
     connect(r_height_slider, SIGNAL(valueChanged(int)), this, SLOT(upd_r_height(int)));
+}
+
+void test_widget::select_mode(int i)
+{
+    mode_label->setText(QString::number(i));
+    index = i;
 }
 
 void test_widget::upd_roll(int value)

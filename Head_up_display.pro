@@ -16,15 +16,17 @@ DEFINES += QT_DEPRECATED_WARNINGS
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 SOURCES += \
-    display.cpp \
-    display_tcp_client.cpp \
+    HUD.cpp \
+    UMU.cpp \
+    hud_tcp_client.cpp \
     main.cpp \
     tcp_client.cpp \
     test_widget.cpp
 
 HEADERS += \
-    display.h \
-    display_tcp_client.h \
+    HUD.h \
+    UMU.h \
+    hud_tcp_client.h \
     tcp_client.h \
     test_widget.h
 

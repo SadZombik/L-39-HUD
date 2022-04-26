@@ -7,7 +7,7 @@
 #include <QSlider>
 #include <QLabel>
 #include <QDoubleSpinBox>
-
+#include <QComboBox>
 
 class test_widget: public QWidget
 {
@@ -23,9 +23,14 @@ public:
     float getForwSpeed() { return f_speed_slider->value(); }
     float getHeight() { return height_slider->value(); }
     float getRHeight() { return r_height_slider->value(); }
+    float getMode() { return index; }
 
 private:
     QVBoxLayout *layout;
+
+    QComboBox *mode;
+    QLabel *mode_label;
+    int index;
 
     QLabel *roll_label;
     QSlider *roll_slider;
@@ -49,6 +54,7 @@ private:
     QSlider *r_height_slider;
 
 private slots:
+    void select_mode(int);
     void upd_roll(int);
     void upd_pitch(int);
     void upd_v_speed(int);
