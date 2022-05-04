@@ -1,14 +1,18 @@
-#include "HUD.h"
+#include "UMU.h"
 #include "test_widget.h"
 #include <QApplication>
+
+
 
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
 
-    int size = 512;
-    HUD hud(size, size * 1.2, true);
-    hud.show();
+    UMU umu1(896, 512);
+    umu1.move(0, (1080-umu1.height())/2);
+    umu1.show();
 
     return a.exec();
 }
+
+

@@ -24,6 +24,7 @@ public:
     float getHeight() { return height_slider->value(); }
     float getRHeight() { return r_height_slider->value(); }
     float getMode() { return index; }
+    float getTargetDist() { return target_dist_slider->value()/100.0f; }
 
 private:
     QVBoxLayout *layout;
@@ -53,6 +54,9 @@ private:
     QLabel *r_height_label;
     QSlider *r_height_slider;
 
+    QLabel *target_dist_label;
+    QSlider *target_dist_slider;
+
 private slots:
     void select_mode(int);
     void upd_roll(int);
@@ -61,6 +65,7 @@ private slots:
     void upd_f_speed(int);
     void upd_height(int);
     void upd_r_height(int);
+    void upd_target_dist(int);
 };
 
 #endif // TEST_WIDGET_H

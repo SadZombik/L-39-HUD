@@ -2,7 +2,7 @@
 #include <QDebug>
 
 HUD::HUD(const quint16 width, const quint16 height, bool transparent, QWidget *parent)
-    : QWidget(parent), w(width), h(height), planeParams(client.displayPacket)
+    : QWidget(parent), planeParams(client.displayPacket), w(width), h(height)
 {
     if (transparent)
     {
@@ -15,7 +15,9 @@ HUD::HUD(const quint16 width, const quint16 height, bool transparent, QWidget *p
     resize(w, h);
     rescale();
 
-    planeParams.hud_mode = Modes::NAV;
+    planeParams.hud_mode = Modes::VIZIER;
+
+    pix.load(":/img/Vizier.png");
 
     QTimer *timer = new QTimer(this);
     timer->start(20);
@@ -23,13 +25,15 @@ HUD::HUD(const quint16 width, const quint16 height, bool transparent, QWidget *p
 
     // TODO: удалить после настройки
     connect(timer, SIGNAL(timeout()), this, SLOT(update_params()));
+
+    test.move(1650, (1080-test.height())/2);
     test.show();
 }
 
 // TODO: удалить после настройки
 void HUD::update_params()
 {
-    planeParams.hud_mode = test.getMode();
+    // planeParams.hud_mode = test.getMode();
     planeParams.roll = test.getRoll();
     planeParams.pitch = test.getPitch();
     planeParams.yaw = test.getYaw();
@@ -39,6 +43,10 @@ void HUD::update_params()
     planeParams.radio_height = test.getRHeight();
     planeParams.launch_signal = true;
     planeParams.waypoint_dist = 0;
+    planeParams.range = test.getTargetDist();
+    planeParams.max_range = 4;
+    planeParams.min_range = 3;
+
 }
 
 void HUD::rescale()
@@ -47,7 +55,7 @@ void HUD::rescale()
     h = height();
 
     // Конфиг
-    QSettings *ini = new QSettings("config.ini", QSettings::IniFormat);
+    QSettings *ini = new QSettings("hud_config.ini", QSettings::IniFormat);
     ini->beginGroup("GEOMETRY");
     {
         // Настройка сетки
@@ -84,6 +92,12 @@ void HUD::rescale()
 
         // Настройки индикатора приборной воздушной скорости
         ias_line_len = w * ini->value("ias_width_coef").toFloat();
+
+        // Настройки шкалы дальности
+        range_offset = ini->value("range_offset").toFloat();
+
+        // Настройки неподвижной сетки визира
+        viz_offset = ini->value("viz_offset").toFloat();
     }
     ini->endGroup();
 
@@ -98,6 +112,7 @@ void HUD::rescale()
         mode_font_size = ini->value("mode_font_size").toInt();
         range_font_size = ini->value("range_font_size").toInt();
         launch_font_size = ini->value("launch_font_size").toInt();
+        range_scale_font_size = ini->value("range_scale_font_size").toInt();
     }
     ini->endGroup();
 
@@ -156,18 +171,16 @@ void HUD::mesh(QPainter *qp)
 {
     if (use_mesh)
     {
-        QPen ipen;
-        ipen.setStyle(Qt::DashLine);
-        ipen.setColor(line_color);
-
         qp->save();
         {
+            QPen ipen;
+            ipen.setStyle(Qt::DashLine);
+            ipen.setColor(line_color);
             qp->setPen(ipen);
-            qp->translate(-w/2, -h/2);
 
+            qp->translate(-w/2, -h/2);
             qp->drawLine(0, top_level, w, top_level);
             qp->drawLine(0, bottom_level, w, bottom_level);
-
             qp->drawLine(left_level, 0, left_level, h);
             qp->drawLine(right_level, 0, right_level, h);
         }
@@ -181,7 +194,7 @@ void HUD::draw(QPainter *qp, QString mode, bool radio)
     scope(qp);
     roll_indicator(qp);
     pitch_indicator(qp);
-    course(qp);
+    course_incdicator(qp);
     ias(qp);
     height_indicator(qp, radio);
     mode_indicator(qp, mode);
@@ -221,7 +234,7 @@ void HUD::draw_rocket(QPainter *qp)
     viz_mark(qp);
     launch_signal(qp);
     weapon_switch(qp, "S5M");
-    range_scale(qp);
+    range_indicator(qp);
 }
 
 void HUD::draw_gun(QPainter *qp)
@@ -230,7 +243,7 @@ void HUD::draw_gun(QPainter *qp)
 
     viz_mark(qp);
     launch_signal(qp);
-    range_scale(qp);
+    range_indicator(qp);
 }
 
 void HUD::draw_air(QPainter *qp)
@@ -243,19 +256,24 @@ void HUD::draw_air(QPainter *qp)
 
 void HUD::draw_vizier(QPainter *qp)
 {
-
+    mesh(qp);
+    viz_mesh(qp);
 }
 
 void HUD::scope(QPainter *qp)
 {
-    QLineF scope_lines[4] =
+    qp->save();
     {
-        QLineF(-scope_size, 0, -scope_space, 0),
-        QLineF(scope_size, 0, scope_space, 0),
-        QLineF(0, -scope_size, 0, -scope_space),
-        QLineF(0, scope_size, 0, scope_space)
-    };
-    qp->drawLines(scope_lines, 4);
+        QLineF scope_lines[4] =
+        {
+            QLineF(-scope_size, 0, -scope_space, 0),
+            QLineF(scope_size, 0, scope_space, 0),
+            QLineF(0, -scope_size, 0, -scope_space),
+            QLineF(0, scope_size, 0, scope_space)
+        };
+        qp->drawLines(scope_lines, 4);
+    }
+    qp->restore();
 }
 
 void HUD::roll_indicator(QPainter *qp)
@@ -342,15 +360,14 @@ void HUD::roll_indicator(QPainter *qp)
 
 void HUD::pitch_indicator(QPainter *qp)
 {
-    QFont p_font("Helvetica", pitch_font_size);
-
-    float pitch = planeParams.pitch;
-    float line_pos = pitch * roll_outer_radius / 90;
-    line_pos = pitch > 90 ? roll_outer_radius : line_pos;
-    line_pos = pitch < -90 ? -roll_outer_radius : line_pos;
-
     qp->save();
     {
+        QFont p_font("Helvetica", pitch_font_size);
+
+        float pitch = planeParams.pitch;
+        float line_pos = pitch * roll_outer_radius / 90;
+        line_pos = pitch > 90 ? roll_outer_radius : line_pos;
+        line_pos = pitch < -90 ? -roll_outer_radius : line_pos;
         qp->setFont(p_font);
         qp->drawLine(-pitch_line_len/2, line_pos, pitch_line_len/2, line_pos);
         qp->drawText(pitch_line_len/2 - pitch_font_size, line_pos - label_offset, QString::number(pitch));
@@ -360,17 +377,16 @@ void HUD::pitch_indicator(QPainter *qp)
 
 void HUD::vert_speed_indicator(QPainter *qp)
 {
-    QFont vs_font("Helvetica", vert_speed_font_size);
-
-    float v_speed = planeParams.vertical_speed;
-    float arrow_pos = -v_speed * vert_speed_line_len/2 / 30;
-    arrow_pos = v_speed > 30 ? -vert_speed_line_len/2 : arrow_pos;
-    arrow_pos = v_speed < -30 ? vert_speed_line_len/2 : arrow_pos;
-
     qp->save();
     {
+        QFont vs_font("Helvetica", vert_speed_font_size);
         qp->setFont(vs_font);
         qp->translate(scale_offset, 0);
+
+        float v_speed = planeParams.vertical_speed;
+        float arrow_pos = -v_speed * vert_speed_line_len/2 / 30;
+        arrow_pos = v_speed > 30 ? -vert_speed_line_len/2 : arrow_pos;
+        arrow_pos = v_speed < -30 ? vert_speed_line_len/2 : arrow_pos;
 
         // Шкала
         qp->drawLine(0, -vert_speed_line_len/2, 0, vert_speed_line_len/2);
@@ -389,13 +405,14 @@ void HUD::vert_speed_indicator(QPainter *qp)
 
 void HUD::ias(QPainter *qp)
 {
-    QFont ias_font("Helvetica", ias_font_size);
-
     float speed = planeParams.forward_speed;
+
     qp->save();
     {
+        QFont ias_font("Helvetica", ias_font_size);
         qp->setFont(ias_font);
         qp->translate(-w/2, -h/2);
+
 
         // Индикатор
         qp->drawLine(left_level-ias_line_len/2, top_level, left_level+ias_line_len/2, top_level);
@@ -434,12 +451,11 @@ void HUD::ias(QPainter *qp)
     prev_speed = speed;
 }
 
-void HUD::course(QPainter *qp)
+void HUD::course_incdicator(QPainter *qp)
 {
-    QFont yaw_font("Helvetica", yaw_font_size);
-
     qp->save();
     {
+        QFont yaw_font("Helvetica", yaw_font_size);
         qp->setFont(yaw_font);
         qp->translate(0, -h/2);
 
@@ -479,13 +495,13 @@ void HUD::course(QPainter *qp)
 
 void HUD::height_indicator(QPainter *qp, bool radio)
 {
-    QFont h_font("Helvetica", height_font_size);
-    QFont r_font("Helvetica", radio_height_font_size);
-
     qp->save();
     {
+        QFont h_font("Helvetica", height_font_size);
+        QFont r_font("Helvetica", radio_height_font_size);
         qp->setFont(h_font);
         qp->translate(-w/2, -h/2);
+
         qp->drawText(QRectF(
             right_level - height_font_size*2,
             top_level - height_font_size - label_offset,
@@ -519,12 +535,12 @@ void HUD::height_indicator(QPainter *qp, bool radio)
 
 void HUD::mode_indicator(QPainter *qp, QString mode)
 {
-    QFont m_font("Helvetica", mode_font_size);
-
     qp->save();
     {
+        QFont m_font("Helvetica", mode_font_size);
         qp->setFont(m_font);
         qp->translate(-w/2, -h/2);
+
         qp->drawText(QRectF(
             left_level-mode_font_size*1.5,
             bottom_level-label_offset-mode_font_size,
@@ -537,12 +553,12 @@ void HUD::mode_indicator(QPainter *qp, QString mode)
 
 void HUD::waypoint_indicator(QPainter *qp)
 {
-    QFont rn_font("Helvetica", range_font_size);
-
     qp->save();
     {
+        QFont rn_font("Helvetica", range_font_size);
         qp->setFont(rn_font);
         qp->translate(0, -h/2);
+
         qp->drawText(QRectF(
             -range_font_size*2,
             bottom_level+label_offset,
@@ -589,19 +605,56 @@ void HUD::launch_signal(QPainter *qp)
     }
 }
 
-void HUD::range_scale(QPainter *qp)
+void HUD::range_indicator(QPainter *qp)
 {
+    qp->save();
+    {
+        QFont rs_font("Helvetica", range_scale_font_size);
+        qp->setFont(rs_font);
 
+        qp->translate(-range_offset, 0);
+        range_line_len = roll_outer_radius; // ?
+
+        // Шкала
+        qp->drawLine(0, -range_line_len, 0, range_line_len);
+        for (int i = 0; i < 6; i++)
+        {
+            float y = -range_line_len + range_line_len/2.5 * i;
+            qp->drawLine(-vert_lines_width, y, 0, y);
+        }
+        qp->drawText(-vert_lines_width-range_scale_font_size*1.5, -range_line_len+range_scale_font_size/2, "5");
+
+        // Стрелка
+        float range = planeParams.range ;
+        float arrow_pos = (range > 5) ? (-range_line_len) : range_line_len - (range * range_line_len*2) / 5;
+
+        qp->drawLine(0, arrow_pos, vert_lines_width*2, arrow_pos);
+        qp->drawLine(0, arrow_pos, vert_lines_width*3, arrow_pos);
+        qp->drawLine(0, arrow_pos, vert_lines_width*0.707, arrow_pos-vert_lines_width*0.707); // 0.707 - корень из 2 / 2
+        qp->drawLine(0, arrow_pos, vert_lines_width*0.707, arrow_pos+vert_lines_width*0.707);
+
+        // max/min
+        QPen pen;
+        pen.setWidthF(line_width*3);
+        qp->setPen(pen);
+
+        float max = range_line_len - (planeParams.max_range * range_line_len*2) / 5;
+        float min = range_line_len - (planeParams.min_range * range_line_len*2) / 5;
+
+        qp->drawLine(0, max, vert_lines_width, max);
+        qp->drawLine(0, min, vert_lines_width, min);
+    }
+    qp->restore();
 }
 
 void HUD::weapon_switch(QPainter *qp, QString str)
 {
-    QFont w_font("Helvetica", launch_font_size);
-
     qp->save();
     {
+        QFont w_font("Helvetica", launch_font_size);
         qp->setFont(w_font);
         qp->translate(-w/2, -h/2);
+
         qp->drawText(QRectF(
             right_level-height_font_size*1.5,
             bottom_level-label_offset-launch_font_size,
@@ -617,8 +670,7 @@ void HUD::viz_mark(QPainter *qp)
 
 }
 
-void HUD::keyPressEvent(QKeyEvent *event)
+void HUD::viz_mesh(QPainter *qp)
 {
-    Q_UNUSED(event);
+    qp->drawPixmap(-w/2-viz_offset, -h/2, w, h, pix);
 }
-

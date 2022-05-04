@@ -40,7 +40,7 @@ struct DisplayDataPacket
     float long_acceleration;    // Продольное ускорение
     quint8 hud_mode;            // Режим ИЛС
     float waypoint_dist;        // Расстояние до выбранной путевой точки
-    bool launch_signal;          // Сигнал разрешения сброса
+    bool launch_signal;         // Сигнал разрешения сброса
     float range;                // Текущая дальность (GUN , GND)
     float hit_point_x;          // Точка попадания X
     float hit_point_y;          // Точка попадания Y
@@ -53,6 +53,7 @@ struct DisplayDataPacket
 class HUD_TCP_client: public TCP_Client
 {
     Q_OBJECT
+
 public:
     HUD_TCP_client();
 

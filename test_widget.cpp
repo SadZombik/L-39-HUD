@@ -35,6 +35,9 @@ test_widget::test_widget(QWidget *parent): QWidget(parent)
     r_height_label = new QLabel("Radio Height", this);
     r_height_slider = new QSlider(Qt::Horizontal, this);
 
+    target_dist_label = new QLabel("Target distance", this);
+    target_dist_slider = new QSlider(Qt::Horizontal, this);
+
     yaw_slider->setMinimum(0);
     yaw_slider->setMaximum(360);
     yaw_slider->setSingleStep(0.3);
@@ -51,6 +54,8 @@ test_widget::test_widget(QWidget *parent): QWidget(parent)
     height_slider->setMaximum(5000);
     r_height_slider->setMinimum(0);
     r_height_slider->setMaximum(5000);
+    target_dist_slider->setMinimum(0);
+    target_dist_slider->setMaximum(600);
 
     layout->addWidget(mode_label);
     layout->addWidget(mode);
@@ -70,7 +75,8 @@ test_widget::test_widget(QWidget *parent): QWidget(parent)
     layout->addWidget(height_slider);
     layout->addWidget(r_height_label);
     layout->addWidget(r_height_slider);
-
+    layout->addWidget(target_dist_label);
+    layout->addWidget(target_dist_slider);
 
     setLayout(layout);
 
@@ -81,6 +87,7 @@ test_widget::test_widget(QWidget *parent): QWidget(parent)
     connect(f_speed_slider, SIGNAL(valueChanged(int)), this, SLOT(upd_f_speed(int)));
     connect(height_slider, SIGNAL(valueChanged(int)), this, SLOT(upd_height(int)));
     connect(r_height_slider, SIGNAL(valueChanged(int)), this, SLOT(upd_r_height(int)));
+    connect(target_dist_slider, SIGNAL(valueChanged(int)), this, SLOT(upd_target_dist(int)));
 }
 
 void test_widget::select_mode(int i)
@@ -117,4 +124,9 @@ void test_widget::upd_height(int value)
 void test_widget::upd_r_height(int value)
 {
     r_height_label->setText("Radio Height " + QString::number(value));
+}
+
+void test_widget::upd_target_dist(int value)
+{
+    target_dist_label->setText("Target distance " + QString::number(value/100.0f));
 }

@@ -1,0 +1,6 @@
+QPsuhButton
+{
+    background-color: #272827;
+    color: white;
+    border: 2px solid #3a4b5e;
+}
