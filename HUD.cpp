@@ -672,5 +672,6 @@ void HUD::viz_mark(QPainter *qp)
 
 void HUD::viz_mesh(QPainter *qp)
 {
+    // Статичная сетка визирного прицела
     qp->drawPixmap(-w/2-viz_offset, -h/2, w, h, pix);
 }
