@@ -78,6 +78,8 @@ test_widget::test_widget(QWidget *parent): QWidget(parent)
     layout->addWidget(target_dist_label);
     layout->addWidget(target_dist_slider);
 
+    layout->addWidget(&debug_btn);
+
     setLayout(layout);
 
     connect(mode, SIGNAL(activated(int)), this, SLOT(select_mode(int)));
@@ -88,7 +90,38 @@ test_widget::test_widget(QWidget *parent): QWidget(parent)
     connect(height_slider, SIGNAL(valueChanged(int)), this, SLOT(upd_height(int)));
     connect(r_height_slider, SIGNAL(valueChanged(int)), this, SLOT(upd_r_height(int)));
     connect(target_dist_slider, SIGNAL(valueChanged(int)), this, SLOT(upd_target_dist(int)));
+
+    connect(&debug_btn, SIGNAL(clicked()), this, SLOT(debug()));
 }
+
+void test_widget::debug()
+{
+    qDebug() << planeParams;
+}
+
+QDebug operator<<(QDebug out, const DisplayDataPacket& ep)
+{
+    out << ", \nbar_height" << ep.bar_height
+        << ", \nradio_height" << ep.radio_height
+        << ", \nroll" << ep.roll
+        << ", \npitch" << ep.pitch
+        << ", \nyaw" << ep.yaw
+        << ", \nengine_speed" << ep.engine_speed
+        << ", \nforward_speed" << ep.forward_speed
+        << ", \nvertical_speed" << ep.vertical_speed
+        << ", \nsliding_angle" << ep.sliding_angle
+        << ", \nlong_acceleration" << ep.long_acceleration
+        << ", \nwaypoint_dist" << ep.waypoint_dist
+        << ", \nlaunch_signal" << ep.launch_signal
+        << ", \nrange" << ep.range
+        << ", \nhit_point_x" << ep.hit_point_x
+        << ", \nhit_point_y" << ep.hit_point_y
+        << ", \nhit_point_z" << ep.hit_point_z
+        << ", \nmax_range" << ep.max_range
+        << ", \nmin_range" << ep.min_range;
+    return out;
+}
+
 
 void test_widget::select_mode(int i)
 {
@@ -130,3 +163,4 @@ void test_widget::upd_target_dist(int value)
 {
     target_dist_label->setText("Target distance " + QString::number(value/100.0f));
 }
+

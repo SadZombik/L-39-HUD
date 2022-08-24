@@ -8,6 +8,9 @@
 #include <QLabel>
 #include <QDoubleSpinBox>
 #include <QComboBox>
+#include <QPushButton>
+#include <QDebug>
+#include "DisplayData.h"
 
 class test_widget: public QWidget
 {
@@ -25,6 +28,9 @@ public:
     float getRHeight() { return r_height_slider->value(); }
     float getMode() { return index; }
     float getTargetDist() { return target_dist_slider->value()/100.0f; }
+
+
+    DisplayDataPacket planeParams;
 
 private:
     QVBoxLayout *layout;
@@ -57,6 +63,8 @@ private:
     QLabel *target_dist_label;
     QSlider *target_dist_slider;
 
+    QPushButton debug_btn;
+
 private slots:
     void select_mode(int);
     void upd_roll(int);
@@ -66,6 +74,8 @@ private slots:
     void upd_height(int);
     void upd_r_height(int);
     void upd_target_dist(int);
+    void debug();
 };
 
+QDebug operator<<(QDebug out, const DisplayDataPacket& ep);
 #endif // TEST_WIDGET_H
